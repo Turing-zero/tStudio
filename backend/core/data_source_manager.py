@@ -66,6 +66,13 @@ class DataSourceManager:
             return False
         except Exception as e:
             print(f"Failed to connect to adapter {adapter_name}: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+        except BaseException as e:
+            print(f"Critical error connecting to adapter {adapter_name}: {e}")
+            import traceback
+            traceback.print_exc()
             return False
     
     async def disconnect_current_adapter(self) -> bool:

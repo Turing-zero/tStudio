@@ -2,9 +2,13 @@ import asyncio
 import time
 import json
 import math
+import threading
+import logging
 from typing import Dict, Any, List, Optional
 from .base_adapter import BaseAdapter
 import roslibpy
+
+logger = logging.getLogger(__name__)
 
 class ROSAdapter(BaseAdapter):
     """ROS 数据适配器 - 通过 rosbridge 连接到 ROS1/ROS2 系统
@@ -65,10 +69,28 @@ class ROSAdapter(BaseAdapter):
             self.ros.on('close', self._on_close)
             
             # 连接到ROS Bridge
-            self.ros.run()
+            logger.info(f"Starting ROS connection to {host}:{port}...")
             
-            # 等待连接建立
-            await asyncio.sleep(1)
+            def run_ros():
+                try:
+                    logger.debug("Thread: calling ros.run()")
+                    self.ros.run()
+                    logger.debug("Thread: ros.run() returned")
+                except Exception as e:
+                    logger.error(f"Thread: ros.run() failed: {e}", exc_info=True)
+
+            # Use dedicated thread for connection to avoid event loop conflicts
+            self._connection_thread = threading.Thread(target=run_ros)
+            self._connection_thread.daemon = True
+            self._connection_thread.start()
+            
+            # Wait up to 5 seconds for connection
+            logger.info("Main: Waiting for connection...")
+            for i in range(10):
+                logger.debug(f"Main: Check {i} connected={self.ros.is_connected}")
+                if self.ros.is_connected:
+                    break
+                await asyncio.sleep(0.5)
             
             if self.ros.is_connected:
                 self.is_connected = True
@@ -80,20 +102,20 @@ class ROSAdapter(BaseAdapter):
                 try:
                     await self.subscribe_topic('/tf')
                 except Exception as e:
-                    print(f"Auto-subscribe /tf failed: {e}")
+                    logger.error(f"Auto-subscribe /tf failed: {e}")
                 try:
                     await self.subscribe_topic('/tf_static')
                 except Exception as e:
-                    print(f"Auto-subscribe /tf_static failed: {e}")
+                    logger.error(f"Auto-subscribe /tf_static failed: {e}")
 
-                print(f"Connected to ROS Bridge at {host}:{port}")
+                logger.info(f"Connected to ROS Bridge at {host}:{port}")
                 return True
             else:
-                print(f"Failed to connect to ROS Bridge at {host}:{port}")
+                logger.error(f"Failed to connect to ROS Bridge at {host}:{port}")
                 return False
                 
         except Exception as e:
-            print(f"ROS adapter connection error: {e}")
+            logger.error(f"ROS adapter connection error: {e}", exc_info=True)
             return False
     
     async def disconnect(self) -> bool:
@@ -150,7 +172,7 @@ class ROSAdapter(BaseAdapter):
                         'type': topic_type or 'unknown'
                     })
                 except Exception as e:
-                    print(f"Error getting type for topic {topic}: {e}")
+                    logger.error(f"Error getting type for topic {topic}: {e}")
                     result.append({
                         'name': topic,
                         'type': 'unknown'
@@ -159,13 +181,13 @@ class ROSAdapter(BaseAdapter):
             return result
             
         except Exception as e:
-            print(f"Error getting available topics: {e}")
+            logger.error(f"Error getting available topics: {e}")
             return []
     
     async def subscribe_topic(self, topic: str, message_type: str = None) -> bool:
         """订阅话题"""
         if not self.is_connected or not self.ros:
-            print(f"Cannot subscribe to {topic}: not connected")
+            logger.warning(f"Cannot subscribe to {topic}: not connected")
             return False
         
         try:
@@ -184,10 +206,10 @@ class ROSAdapter(BaseAdapter):
                 try:
                     message_type = await self._get_topic_type(topic)
                     if not message_type:
-                        print(f"Could not determine message type for topic {topic}")
+                        logger.warning(f"Could not determine message type for topic {topic}")
                         return False
                 except Exception as e:
-                    print(f"Error getting message type for {topic}: {e}")
+                    logger.error(f"Error getting message type for {topic}: {e}")
                     return False
             
             # 创建订阅者
@@ -197,11 +219,11 @@ class ROSAdapter(BaseAdapter):
             # 订阅话题并绑定回调
             listener.subscribe(message_handler)
             
-            print(f"Subscribed to topic: {topic} with type {message_type}")
+            logger.info(f"Subscribed to topic: {topic} with type {message_type}")
             return True
             
         except Exception as e:
-            print(f"Error subscribing to topic {topic}: {e}")
+            logger.error(f"Error subscribing to topic {topic}: {e}")
             return False
     
     async def unsubscribe_topic(self, topic: str) -> bool:
@@ -216,14 +238,14 @@ class ROSAdapter(BaseAdapter):
                 if topic in self.subscribed_topics:
                     del self.subscribed_topics[topic]
                 
-                print(f"Unsubscribed from topic: {topic}")
+                logger.info(f"Unsubscribed from topic: {topic}")
                 return True
             else:
-                print(f"Topic {topic} was not subscribed")
+                logger.warning(f"Topic {topic} was not subscribed")
                 return False
                 
         except Exception as e:
-            print(f"Error unsubscribing from topic {topic}: {e}")
+            logger.error(f"Error unsubscribing from topic {topic}: {e}")
             return False
 
     async def _get_topic_type(self, topic: str) -> Optional[str]:
@@ -248,7 +270,7 @@ class ROSAdapter(BaseAdapter):
             
             return await asyncio.wait_for(future, timeout=2.0)
         except Exception as e:
-            print(f"Error getting message type for {topic}: {e}")
+            logger.error(f"Error getting message type for {topic}: {e}")
             raise
     
     def _handle_ros_message(self, topic: str, message_type: str, message: dict):
@@ -260,7 +282,7 @@ class ROSAdapter(BaseAdapter):
                         parent = t.get('header', {}).get('frame_id')
                         child = t.get('child_frame_id')
                         if parent == 'world' and child == 'map':
-                            print(f"TF received: world -> map (topic {topic})")
+                            logger.debug(f"TF received: world -> map (topic {topic})")
                 except Exception:
                     pass
             converted_data = self._convert_ros_message(topic, message, message_type)
@@ -273,7 +295,7 @@ class ROSAdapter(BaseAdapter):
                 )
                 
         except Exception as e:
-            print(f"Error handling ROS message from {topic}: {e}")
+            logger.error(f"Error handling ROS message from {topic}: {e}")
     
     async def _disconnect_impl(self) -> bool:
         """实现具体的断开逻辑"""
@@ -290,7 +312,7 @@ class ROSAdapter(BaseAdapter):
             return True
             
         except Exception as e:
-            print(f"ROS adapter disconnection error: {e}")
+            logger.error(f"ROS adapter disconnection error: {e}")
             return False
     
     def _convert_ros_message(self, topic: str, message: dict, message_type: str) -> Optional[Dict[str, Any]]:
@@ -304,24 +326,24 @@ class ROSAdapter(BaseAdapter):
                 'timestamp': time.time()
             }
         except Exception as e:
-            print(f"Error converting ROS message: {e}")
+            logger.error(f"Error converting ROS message: {e}")
             return None
     
     def _on_connection(self):
-        print("ROS Bridge connected")
+        logger.info("ROS Bridge connected")
     
     def _on_error(self, error):
-        print(f"ROS Bridge error: {error}")
+        logger.error(f"ROS Bridge error: {error}")
     
     def _on_close(self, *args, **kwargs):
-        print("ROS Bridge connection closed")
+        logger.info("ROS Bridge connection closed")
         self.is_connected = False
         try:
             # 停止批处理任务，避免悬挂定时触发
             if self._main_loop:
                 asyncio.run_coroutine_threadsafe(self._stop_batch_update_task(), self._main_loop)
         except Exception as e:
-            print(f"Error stopping batch task on close: {e}")
+            logger.error(f"Error stopping batch task on close: {e}")
 
     async def publish_tool_event(self, evt_type: str, data: Dict[str, Any], params: Dict[str, Any]) -> bool:
         try:
@@ -369,7 +391,7 @@ class ROSAdapter(BaseAdapter):
                 topic.unadvertise()
                 return True
         except Exception as e:
-            print(f"ROS adapter publish error: {e}")
+            logger.error(f"ROS adapter publish error: {e}")
             return False
 
     def _get_ros_message_type(self, evt_type: str) -> Optional[str]:

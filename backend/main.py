@@ -3,9 +3,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import Any
 
 import sys, os
+# Ensure backend directory is in python path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(".")
+
 # 从 app_state 导入共享实例和回调所需的模块
 from app_state import manager, data_source_manager
+
+# --- 日志配置 ---
+# 在应用启动最早期加载日志配置
+from log_config import setup_logging
+setup_logging()
 
 # --- FastAPI 应用实例 ---
 app = FastAPI(title="tStudio backend")

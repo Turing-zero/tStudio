@@ -30,16 +30,25 @@ async def get_adapter_config(adapter_name: str):
 @router.post("/connection/connect")
 async def connect_to_adapter(request: ConnectionRequest):
     """连接到数据源"""
-    success = await data_source_manager.connect_adapter(request.adapter, request.config)
-    
-    if success:
-        await manager.broadcast({
-            "type": "connection_status",
-            "data": data_source_manager.get_connection_status()
-        })
-        return {"success": True, "message": "Connected successfully"}
-    else:
-        raise HTTPException(status_code=400, detail="Failed to connect to adapter")
+    print(f"DEBUG: Connection request received for {request.adapter}")
+    try:
+        success = await data_source_manager.connect_adapter(request.adapter, request.config)
+        
+        if success:
+            await manager.broadcast({
+                "type": "connection_status",
+                "data": data_source_manager.get_connection_status()
+            })
+            return {"success": True, "message": "Connected successfully"}
+        else:
+            raise HTTPException(status_code=400, detail="Failed to connect to adapter")
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Unexpected error in connect_to_adapter: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=400, detail=f"Connection failed: {str(e)}")
 
 @router.post("/connection/disconnect")
 async def disconnect_from_adapter():
