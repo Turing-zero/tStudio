@@ -166,8 +166,6 @@ export class VisualizationPluginManager {
     if (!pluginType) {
       console.warn(`No plugin found for topic: ${topic}, type: ${message.message_type}`);
       return null;
-    }else{
-      console.log(`Found plugin for ${topic}: ${pluginType.name}`)
     }
     
     // 创建新的插件实例（克隆插件类型）

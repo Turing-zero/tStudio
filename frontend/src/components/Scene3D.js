@@ -3,6 +3,7 @@ import { initializePlugins } from './plugins';
 import { tfManager } from '../services/TFManager'; // 导入 tfManager
 import { AppContext } from '../services/AppContext';
 import * as THREE from 'three';
+import RobotModel from './RobotModel';
 
 function Scene3D({ data }) {
   const [pluginManager, setPluginManager] = useState(null);
@@ -40,8 +41,9 @@ function Scene3D({ data }) {
 
   return (
     <group>
-      {/* Debug mounts for goals/areas count */}
-      {/* {(() => { console.log('Scene3D render counts', { goals: (navGoals||[]).length, areas: (selectedAreas||[]).length, points: (missionPoints||[]).length }); return null; })()} */}
+      {/* 渲染数字孪生机器人模型 */}
+      <RobotModel />
+      
       {/* 动态渲染所有话题数据 */}
       {/* 确保 pluginManager 已初始化后再进行渲染，防止空指针错误 */}
       {pluginManager && Object.entries(data).map(([topic, topicData]) => {
@@ -53,7 +55,7 @@ function Scene3D({ data }) {
         const renderedComponent = pluginManager.render(topic, topicData, tfManager, topicConfig);
         if (!renderedComponent) {
           const type = topicData?.message_type || 'UnknownType';
-          addDebugInfo(`No visualization plugin for ${topic} (${type})`, 'warn');
+          console.warn(`[Scene3D] No visualization plugin for ${topic} (${type})`);
         }
         return <React.Fragment key={topic}>{renderedComponent}</React.Fragment>;
       })}

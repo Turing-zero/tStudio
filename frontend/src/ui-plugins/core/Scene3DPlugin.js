@@ -4,6 +4,7 @@ import { AppContext } from '../../services/AppContext';
 import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Stats } from '@react-three/drei';
 import Scene3D from '../../components/Scene3D';
+import RobotModel from '../../components/RobotModel';
 import * as THREE from 'three';
 
 THREE.Object3D.DEFAULT_UP = new THREE.Vector3(0, 0, 1);

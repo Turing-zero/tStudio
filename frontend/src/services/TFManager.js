@@ -48,7 +48,6 @@ export class TFManager {
           world_q: world?.quaternion,
         };
       });
-      // console.log('[TFManager] focus dump', { root, count: this.frames.size, sample: dump });
     }
   }
 
