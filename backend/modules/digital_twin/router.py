@@ -154,7 +154,7 @@ async def upload_robot_model_zip(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     version: str = Form(...),
-    robot_type: str = Form("tree_planter"),
+    robot_type: str = Form("turtlebot3"),
     activate: bool = Form(True),
     session: AsyncSession = Depends(get_session),
 ):
@@ -203,7 +203,7 @@ async def upload_robot_model_zip(
 
 @router.get("/model/latest", tags=["Digital Twin"])
 async def get_latest_active_model(
-    robot_type: str = "tree_planter",
+    robot_type: str = "turtlebot3",
     session: AsyncSession = Depends(get_session),
 ):
     """
@@ -211,6 +211,7 @@ async def get_latest_active_model(
     
     用于前端展示当前生效的数字孪生模型。
     """
+    # 尝试查找指定 robot_type 的激活模型
     result = await session.execute(
         select(RobotModel)
         .where(
@@ -222,8 +223,10 @@ async def get_latest_active_model(
         .limit(1)
     )
     model = result.scalar_one_or_none()
+
     if model is None:
-        raise HTTPException(status_code=404, detail="active model not found")
+        raise HTTPException(status_code=404, detail=f"active model not found for {robot_type}")
+    
     data = model.model_dump()
     data["source_zip_url"] = _clean_url(data.get("source_zip_url"))
     data["urdf_url"] = _clean_url(data.get("urdf_url"))
@@ -281,4 +284,15 @@ async def activate_model(
     
     await session.commit()
     await session.refresh(model)
+
+    # 4. 广播 WebSocket 事件
+    await manager.broadcast({
+        "type": "MODEL_UPDATED",
+        "payload": {
+            "robot_type": model.robot_type,
+            "version": model.version,
+            "url": model.display_model_url
+        }
+    })
+
     return model

@@ -24,7 +24,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 class RobotModelPusher(FileSystemEventHandler):
-    def __init__(self, api_url: str, watch_dir: str, robot_type: str = "tree_planter"):
+    def __init__(self, api_url: str, watch_dir: str, robot_type: str = "turtlebot3"):
         self.api_url = api_url
         self.watch_dir = os.path.abspath(watch_dir)
         self.robot_type = robot_type
@@ -200,8 +200,8 @@ class RobotModelPusher(FileSystemEventHandler):
 def main():
     parser = argparse.ArgumentParser(description="Robot Model Watcher & Auto-Syncer")
     parser.add_argument("--dir", required=True, help="Directory to watch (e.g., ./src/tree_robot_description)")
-    parser.add_argument("--url", default="http://localhost:3500/api/model/upload-zip", help="Server API URL")
-    parser.add_argument("--type", default="tree_planter", help="Robot Type Identifier")
+    parser.add_argument("--url", default="http://localhost:8000/api/model/upload-zip", help="Server API URL")
+    parser.add_argument("--type", default="turtlebot3", help="Robot Type Identifier")
     
     args = parser.parse_args()
     

@@ -17,7 +17,7 @@ class RobotModel(SQLModel, table=True):
     
     # 业务标识
     version: str = Field(index=True, unique=True, description="模型语义化版本号 (如 v1.0.0)")
-    robot_type: str = Field(default="tree_planter", index=True, description="机器人类型标识 (用于区分不同机型)")
+    robot_type: str = Field(default="turtlebot3", index=True, description="机器人类型标识 (用于区分不同机型)")
 
     # 资源存储路径 (MinIO URL)
     source_zip_url: Optional[str] = Field(default=None, description="原始上传的 Zip 包下载链接")
