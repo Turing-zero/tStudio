@@ -1,4 +1,4 @@
-const BASE_URL = 'http://localhost:3500/api';
+const BASE_URL = '/api';
 
 class ApiService {
   static async request(endpoint, options = {}) {
@@ -62,6 +62,21 @@ class ApiService {
       method: 'POST',
     });
   }
+  static async fetchLatestRobotModel(robotType = 'turtlebot3') {
+    return this.request(`/model/latest?robot_type=${encodeURIComponent(robotType)}`);
+  }
+
+  static async fetchRobotModels(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.request(`/models?${query}`);
+  }
+
+  static async activateRobotModel(modelId) {
+    return this.request(`/models/${modelId}/activate`, {
+      method: 'POST',
+    });
+  }
+
 }
 
 export default ApiService;

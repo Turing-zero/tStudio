@@ -18,10 +18,7 @@ const RobotMesh = ({ url, rootFrame = 'base_footprint' }) => {
   // Debug: Log loaded nodes to help troubleshoot
   useEffect(() => {
     if (nodes) {
-      console.log("[RobotModel] Loaded nodes (keys):", Object.keys(nodes));
       // Optional: log details for a few nodes to see hierarchy
-      // const sample = Object.values(nodes).slice(0, 3).map(n => ({ name: n.name, type: n.type, parent: n.parent?.name }));
-      // console.log("[RobotModel] Node samples:", sample);
     }
   }, [nodes]);
 
@@ -161,7 +158,7 @@ const RobotMesh = ({ url, rootFrame = 'base_footprint' }) => {
   return <primitive ref={groupRef} object={clonedScene} dispose={null} />;
 };
 
-const RobotModel = ({ robotType = 'tree_planter' }) => {
+const RobotModel = ({ robotType = 'turtlebot3' }) => {
   const { wsManager, addDebugInfo } = useAppContext();
   const [modelUrl, setModelUrl] = useState(null);
   const normalizeUrl = (raw) => {
@@ -173,35 +170,73 @@ const RobotModel = ({ robotType = 'tree_planter' }) => {
 
   // 1. Fetch initial model
   useEffect(() => {
+    let isMounted = true;
     const fetchModel = async () => {
       try {
         const model = await ApiService.fetchLatestRobotModel(robotType);
+        if (!isMounted) return;
+        
         if (model && model.display_model_url) {
-          console.log('[RobotModel] Loading initial model:', model.display_model_url);
           const cleanUrl = normalizeUrl(model.display_model_url);
-          setModelUrl(cleanUrl ? `${cleanUrl}?t=${Date.now()}` : null);
+          // [Fix] 将绝对 URL (http://10.144.144.2:9000/...) 转换为相对 URL (/tree-robot-assets/...)
+          // 以利用 setupProxy.js 中的代理转发
+          let proxyUrl = cleanUrl;
+          if (cleanUrl) {
+             if (cleanUrl.includes('/tree-robot-assets/')) {
+                const pathIndex = cleanUrl.indexOf('/tree-robot-assets/');
+                proxyUrl = cleanUrl.substring(pathIndex);
+             } else if (cleanUrl.includes('10.144.144.2')) {
+                // 如果 URL 中包含内网 IP 但没有 /tree-robot-assets/ 前缀（可能是直接 IP 访问）
+                // 尝试强制替换，但这取决于 MinIO 的具体返回格式。
+                // 现有的 setupProxy 只代理 /tree-robot-assets。
+                // 假设 MinIO 返回的是 http://10.144.144.2:9000/bucket/... 
+                // 我们需要确保路径匹配 setupProxy 的规则。
+             }
+          }
+          setModelUrl(proxyUrl ? `${proxyUrl}?t=${Date.now()}` : null);
           addDebugInfo(`Loaded robot model: ${model.version}`, 'success');
         }
       } catch (err) {
+        if (!isMounted) return;
         console.warn('[RobotModel] No active model found:', err);
+        // Only log warning, do not set error state that might cause retry loop in parent if any
         addDebugInfo(`No active robot model found for ${robotType}`, 'warn');
       }
     };
     fetchModel();
-  }, [robotType, addDebugInfo]);
+    return () => { isMounted = false; };
+  }, [robotType]);
 
   // 2. Listen for updates
   useEffect(() => {
     if (!wsManager) return;
 
-    const handleUpdate = (data) => {
+    const handleUpdate = (msg) => {
+      // Backend broadcasts: { type: "MODEL_UPDATED", payload: { robot_type, version, url } }
+      // WebSocketManager emits: msg = { type:..., payload:... } (because msg.data is undefined)
+      const data = msg.payload || msg.data || msg;
+      
       // data: { robot_type, version, url }
       if (data && data.robot_type === robotType) {
-        console.log('[RobotModel] Received model update:', data.url);
         addDebugInfo(`Robot model updated: ${data.version}`, 'success');
         // Force a cache bust by appending time
         const cleanUrl = normalizeUrl(data.url);
-        setModelUrl(cleanUrl ? `${cleanUrl}?t=${Date.now()}` : null);
+        // [Fix] 将绝对 URL (http://10.144.144.2:9000/...) 转换为相对 URL (/tree-robot-assets/...)
+        // 以利用 setupProxy.js 中的代理转发
+        let proxyUrl = cleanUrl;
+        if (cleanUrl) {
+          if (cleanUrl.includes('/tree-robot-assets/')) {
+            const pathIndex = cleanUrl.indexOf('/tree-robot-assets/');
+            proxyUrl = cleanUrl.substring(pathIndex);
+          } else if (cleanUrl.includes('10.144.144.2')) {
+            // 如果 URL 中包含内网 IP 但没有 /tree-robot-assets/ 前缀（可能是直接 IP 访问）
+            // 尝试强制替换，但这取决于 MinIO 的具体返回格式。
+            // 现有的 setupProxy 只代理 /tree-robot-assets。
+            // 假设 MinIO 返回的是 http://10.144.144.2:9000/bucket/... 
+            // 我们需要确保路径匹配 setupProxy 的规则。
+          }
+        }
+        setModelUrl(proxyUrl ? `${proxyUrl}?t=${Date.now()}` : null);
       }
     };
 
@@ -211,7 +246,7 @@ const RobotModel = ({ robotType = 'tree_planter' }) => {
     return () => {
       wsManager.off('MODEL_UPDATED', handleUpdate);
     };
-  }, [wsManager, robotType, addDebugInfo]);
+  }, [wsManager, robotType]);
 
   if (!modelUrl) return null;
 
