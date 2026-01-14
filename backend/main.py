@@ -41,13 +41,21 @@ data_source_manager.add_data_callback(on_data_received)
 # --- API路由 ---
 # 导入并包含各个模块的路由
 from api import api_data, api_topics, api_params
+from modules.digital_twin import router as digital_twin_router
+from core.db import init_db
 
 app.include_router(api_data.router, prefix="/api", tags=["Data & Connection"])
 app.include_router(api_topics.router, prefix="/api", tags=["Topics & WebSocket"])
 app.include_router(api_params.router, prefix="/api/params", tags=["Parameters"])
+app.include_router(digital_twin_router.router, prefix="/api", tags=["Digital Twin"])
+
+# --- 生命周期事件 ---
+@app.on_event("startup")
+async def on_startup():
+    await init_db()
 
 # --- 启动 ---
 if __name__ == "__main__":
     import uvicorn
     # 注意这里的启动方式，对于uvicorn，它会找到app对象
-    uvicorn.run("main:app", host="0.0.0.0", port=3500, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

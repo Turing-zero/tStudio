@@ -9,7 +9,7 @@ class WebSocketManager {
   }
 
   // 连接到WebSocket服务器
-  connect(url = 'ws://localhost:3500/api/ws') {
+  connect(url = `ws://${window.location.hostname}:8000/api/ws`) {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
       this.emit('websocket_max_reconnect_reached');
       console.log('达到最大重连次数，停止重连');

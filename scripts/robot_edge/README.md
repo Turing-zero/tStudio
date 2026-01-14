@@ -6,7 +6,7 @@
 
 - **OS**: Linux (Ubuntu 20.04/22.04 推荐) 或 Windows (测试环境)
 - **Python**: 3.8+
-- **网络**: 需能访问调度服务器的 HTTP 接口 (默认 3500 端口)
+- **网络**: 需能访问调度服务器的 HTTP 接口 (默认 8000 端口)
 
 ## 2. 安装部署
 
@@ -90,7 +90,7 @@ pip install -r requirements.txt
 ```bash
 python watcher.py \
   --dir ~/ros2_ws/src/tree_robot_description \
-  --url http://10.144.144.10:3500/api/model/upload-zip \
+  --url http://10.144.144.10:8000/api/model/upload-zip \
   --type tree_planter
 ```
 

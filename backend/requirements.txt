@@ -5,5 +5,14 @@ numpy
 python-multipart
 roslibpy
 pydantic
+pydantic-settings
 aiofiles
 python-json-logger
+trimesh
+scipy
+networkx
+minio
+pycollada
+sqlmodel
+aiomysql
+sqlalchemy
