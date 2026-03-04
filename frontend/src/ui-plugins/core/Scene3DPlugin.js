@@ -14,9 +14,9 @@ const World = ({ data }) => {
     <group>
       <Scene3D data={data} />
       <group rotation={[-Math.PI / 2, 0, 0]}>
-        <gridHelper args={[60, 60, '#333', '#333']} />
+        <gridHelper args={[60, 60, '#666', '#666']} />
         <mesh position={[0, 0, 0]}>
-          <meshBasicMaterial color="#2a2a2a" transparent opacity={0.35} side={THREE.DoubleSide} />
+          <meshBasicMaterial color="#555555" transparent opacity={0.35} side={THREE.DoubleSide} />
         </mesh>
       </group>
       <axesHelper args={[5]} />
@@ -29,7 +29,7 @@ const Scene3DComponent = () => {
   return (
     <Canvas
       camera={{ position: [7, -14, 10], fov: 60, up: [0, 0, 1] }}
-      style={{ background: '#1a1a1a', width: '100%', height: '100%' }}
+      style={{ background: '#2e2e2e', width: '100%', height: '100%' }}
     >
       <ambientLight intensity={0.6} />
       <directionalLight position={[15, 15, 5]} intensity={1} />

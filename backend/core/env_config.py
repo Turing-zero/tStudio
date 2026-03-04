@@ -11,6 +11,16 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "mysql+aiomysql://root:1234@127.0.0.1:3306/tstudio?charset=utf8mb4"
     DATABASE_ECHO: bool = False
 
+    # Nacos 配置
+    NACOS_SERVER_ADDR: str = "127.0.0.1:8848"
+    NACOS_NAMESPACE: str = ""  # public
+    NACOS_SERVICE_NAME: str = "tstudio-backend"
+    NACOS_SERVICE_PORT: int = 8000
+    NACOS_USERNAME: str = "nacos"
+    NACOS_PASSWORD: str = "nacos"
+    # 是否启用 Nacos 注册
+    ENABLE_NACOS_DISCOVERY: bool = True
+
     class Config:
         import os
         

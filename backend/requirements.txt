@@ -16,3 +16,4 @@ pycollada
 sqlmodel
 aiomysql
 sqlalchemy
+nacos-sdk-python==0.1.15

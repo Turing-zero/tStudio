@@ -43,6 +43,7 @@ data_source_manager.add_data_callback(on_data_received)
 from api import api_data, api_topics, api_params
 from modules.digital_twin import router as digital_twin_router
 from core.db import init_db
+from core.nacos_client import nacos_registry
 
 app.include_router(api_data.router, prefix="/api", tags=["Data & Connection"])
 app.include_router(api_topics.router, prefix="/api", tags=["Topics & WebSocket"])
@@ -53,6 +54,13 @@ app.include_router(digital_twin_router.router, prefix="/api", tags=["Digital Twi
 @app.on_event("startup")
 async def on_startup():
     await init_db()
+    # 注册到 Nacos
+    nacos_registry.register()
+
+@app.on_event("shutdown")
+async def on_shutdown():
+    # 从 Nacos 注销
+    nacos_registry.deregister()
 
 # --- 启动 ---
 if __name__ == "__main__":
