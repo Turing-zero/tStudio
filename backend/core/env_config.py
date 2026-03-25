@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # MinIO 配置
-    MINIO_ENDPOINT: str = "10.144.144.2:9000"      # 注意：不要带 http://
+    MINIO_ENDPOINT: str = "10.144.144.2:30900"      # 注意：不要带 http://
     MINIO_ACCESS_KEY: str = "admin"             # 对应 MINIO_ROOT_USER
     MINIO_SECRET_KEY: str = "TreeRobot_2026_Secure!" # 对应 MINIO_ROOT_PASSWORD
     MINIO_BUCKET_NAME: str = "tree-robot-assets"

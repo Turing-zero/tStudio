@@ -15,7 +15,7 @@ module.exports = function(app) {
   app.use(
     '/tree-robot-assets',
     createProxyMiddleware({
-      target: 'http://10.144.144.2:9000',
+      target: 'http://10.144.144.2:30900',
       changeOrigin: true,
     })
   );
