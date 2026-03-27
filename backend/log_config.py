@@ -84,6 +84,17 @@ def setup_logging():
                 "level": log_level,
                 "propagate": False,
             },
+            # Nacos 客户端日志，调高日志级别以减少心跳干扰
+            "nacos": {
+                "handlers": ["console"],
+                "level": "WARNING",
+                "propagate": False,
+            },
+            "nacos.client": {
+                "handlers": ["console"],
+                "level": "WARNING",
+                "propagate": False,
+            }
         },
     }
 

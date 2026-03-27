@@ -50,6 +50,22 @@ app.include_router(api_topics.router, prefix="/api", tags=["Topics & WebSocket"]
 app.include_router(api_params.router, prefix="/api/params", tags=["Parameters"])
 app.include_router(digital_twin_router.router, prefix="/api", tags=["Digital Twin"])
 
+# --- 健康检查 (兼容 Spring Boot Admin / Nacos) ---
+@app.get("/actuator/health", tags=["Actuator"])
+async def health_check():
+    """兼容 Spring Boot Actuator 的健康检查接口，消除 Nacos/SBA 的 404 刷屏报错"""
+    return {"status": "UP"}
+
+@app.get("/actuator", tags=["Actuator"])
+async def actuator_index():
+    """兼容 Spring Boot Actuator 发现机制"""
+    return {
+        "_links": {
+            "self": {"href": "/actuator", "templated": False},
+            "health": {"href": "/actuator/health", "templated": False}
+        }
+    }
+
 # --- 生命周期事件 ---
 @app.on_event("startup")
 async def on_startup():
@@ -66,4 +82,4 @@ async def on_shutdown():
 if __name__ == "__main__":
     import uvicorn
     # 注意这里的启动方式，对于uvicorn，它会找到app对象
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)
