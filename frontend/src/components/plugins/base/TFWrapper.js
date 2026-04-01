@@ -25,10 +25,11 @@ function TFWrapper({ frameId, tfManager, children }) {
         groupRef.current.quaternion.set(quaternion.x, quaternion.y, quaternion.z, quaternion.w);
         groupRef.current.visible = true;
       } else {
-        // 如果找不到变换，可以选择隐藏对象或保持在原位
-        console.warn(`Transform from ${fixedFrame} to ${frameId} not found.`);
-        // set visible false
-        groupRef.current.visible = false;
+        // 如果找不到变换，不隐藏对象，而是将其放置在原点（保持与 ruoyi-ui 行为一致，方便调试）
+        console.warn(`Transform from ${fixedFrame} to ${frameId} not found. Rendering at origin.`);
+        groupRef.current.position.set(0, 0, 0);
+        groupRef.current.quaternion.set(0, 0, 0, 1);
+        groupRef.current.visible = true;
       }
     }
   });
